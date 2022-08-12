@@ -1,9 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import csv
-from matplotlib.ticker import MaxNLocator
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
 
 #
 # Ask for the name of the file with the data
