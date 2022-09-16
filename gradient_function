@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Aug 31 12:03:55 2022
+
+@author: rpasken
+"""
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import cm
+
+def ddx(var,delta,i,j,rows,cols):
+    if j > 0 and j < cols-1:
+        deriv = (var[i,j+1] - var[i,j-1]) / (2.0 * delta)
+    elif j == 0:
+        deriv = (var[i,j+1] - var[i,j] )/ delta
+    elif j == cols-1:
+        deriv = (var[i,j] - var[i,j-1]) / delta
+        
+    return deriv
+
+def pddx(var,delta):
+    num_lats = len(var)
+    num_lons = len(var[0])
+    for i in range(num_lats):
+        for j in range(num_lons):
+            if j > 0 and j < num_lons-1:
+                deriv = (var[i,j+1] - var[i,j-1]) / (2.0 * delta)
+            elif j == 0:
+                deriv = (var[i,j+1] - var[i,j] )/ delta
+            elif j == num_lons-1:
+                deriv = (var[i,j] - var[i,j-1]) / delta
+        
+    return deriv
+
+def pddy(var,delta):
+    num_lats = len(var)
+    num_lons = len(var[0])
+    for i in range(num_lats):
+        for j in range(num_lons):
+            if j > 0 and j < num_lons-1:
+                deriv = (var[i+1,j] - var[i-1,j]) / (2.0 * delta)
+            elif j == 0:
+                deriv = (var[i,j+1] - var[i,j] )/ delta
+            elif j == num_lons-1:
+                deriv = (var[i,j] - var[i,j-1]) / delta
+        
+    return deriv
+def ddy(var,delta,i,j,rows,cols): 
+    if i > 0 and i < rows-1:
+        deriv = (var[i+1,j] - var[i-1,j]) / (2.0 * delta)
+    elif i == 0:
+        deriv = (var[i+1,j] - var[i,j]) / delta
+    elif i == rows-1:
+        deriv = (var[i,j] - var[i-1,j]) / delta
+        
+    return deriv
+
+#
+# Ask for the name of the file with the data
+#
+
+file_name = input("What is the filename for the input data ")
+
+#
+# Open and then read the data from the file. Specify that each element is separated
+# by a comma
+#
+
+geopot = np.loadtxt(file_name, delimiter=",")
+
+#
+# Technically I already know how many rows and columns there are in the dataset. The
+# next few lines allow me to make the code general and more elegant.
+#
+
+num_lats = len(geopot)
+num_lons = len(geopot[0])
+
+xm,ym = np.meshgrid(np.arange(num_lons),np.arange(num_lats))
+
+v_g = np.empty((num_lats,num_lons))
+u_g = np.empty((num_lats,num_lons))
+
+#
+#For now assume delta x and delta y are 1
+#
+
+delta = 400000.0
+f = 1e-5
+
+for i in range(num_lats):
+    for j in range(num_lons):
+        u_g[i,j] = 1.0 / f * ddx(geopot,delta,i,j,num_lats,num_lons)
+        u_g[i,j] = - u_g[i,j]
+        v_g [i,j]= 1.0 / f * ddy(geopot,delta,i,j,num_lats,num_lons)
+
+
+speed_g = np.sqrt(u_g * u_g + v_g * v_g)
+fig = plt.figure()
+plt.contourf(xm,ym,speed_g)
+
+plt.colorbar()
+plt.show()
