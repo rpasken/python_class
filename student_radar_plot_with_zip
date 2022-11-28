@@ -1,0 +1,101 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+import cartopy.crs as ccrs
+from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+
+
+
+from metpy.io import Level2File
+from metpy.plots import ctables
+
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+# 
+# Open the NEXRAD data file
+#
+
+f = Level2File('./radar/KBUF/20221118/19/KBUF20221118_190229_V06')
+
+# 
+# Pull data out for the first sweep from the file
+#
+
+rLAT = f.sweeps[0][0][1].lat
+rLON = f.sweeps[0][0][1].lon
+proj = ccrs.LambertConformal(central_longitude=rLON, central_latitude=rLAT)
+
+
+sweep = 1
+vel_sweep = 2 * sweep -1
+# 
+# First item in ray is header, which has azimuth angle
+#
+
+az = np.array([ray[0].az_angle for ray in f.sweeps[sweep]])
+diff = np.diff(az)
+diff[diff > 180] -= 360.
+diff[diff < -180] += 360.
+avg_spacing = diff.mean()
+az = (az[:-1] + az[1:]) / 2
+az = np.concatenate(([az[0] - avg_spacing], az, [az[-1] + avg_spacing]))
+
+#
+# 5th item is a dict mapping a var name (byte string) to a tuple
+# of (header, data array)
+#
+
+ref_norm, ref_cmap = ctables.registry.get_with_steps('NWSReflectivity', -5, 50)
+ref_hdr = f.sweeps[sweep][0][4][b'REF'][0]
+ref_range = (np.arange(ref_hdr.num_gates + 1) - 0.5) * ref_hdr.gate_width + ref_hdr.first_gate
+ref = np.array([ray[4][b'REF'][1] for ray in f.sweeps[sweep]])
+
+
+vel_hdr = f.sweeps[vel_sweep][0][4][b'VEL'][0]
+vel_range = (np.arange(vel_hdr.num_gates + 1) - 0.5) * vel_hdr.gate_width + vel_hdr.first_gate
+vel = np.array([ray[4][b'VEL'][1] for ray in f.sweeps[vel_sweep]])
+vel_norm, vel_cmap = ctables.registry.get_with_steps('NWSVelocity', -25, 25)
+
+fig, axes = plt.subplots(1,2, figsize=(8,6))
+for var_data, var_range, lbl, colors, ax in zip((ref,vel),
+                                                (ref_range,vel_range),
+                                                ('REF','VEL'),
+                                                (ref_cmap, vel_cmap),
+                                                axes.flatten()):
+    # Turn into an array, then mask
+    #
+    
+    data = np.ma.array(var_data)
+    data[np.isnan(data)] = np.ma.masked
+
+    # 
+    # Convert az,range to x,y
+    #
+    
+    xlocs = var_range * np.sin(np.deg2rad(az[:, np.newaxis]))
+    ylocs = var_range * np.cos(np.deg2rad(az[:, np.newaxis]))
+
+    #
+    # Get max values in x/y
+    #
+    
+    max_lon = np.max(xlocs)
+    min_lon = np.min(xlocs)
+    max_lat = np.max(ylocs)
+    min_lat = np.min(ylocs)
+    
+    # 
+    # Plot the data
+    #
+    
+    a = ax.pcolormesh(xlocs, ylocs, data, cmap=colors)
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes('right', size='5%', pad=0.05)
+    fig.colorbar(a, cax=cax, orientation='vertical', label=lbl)
+    ax.set_xlim(min_lon/4, max_lon/4)
+    ax.set_ylim(min_lat/4, max_lat/4)
+#    ax.set_aspect('equal', 'datalim')
+plt.suptitle('KBUF Level 2 Data')
+#plt.tight_layout()
+plt.show()
