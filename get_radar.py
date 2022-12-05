@@ -65,7 +65,7 @@ for site in site_names:
         os.makedirs(dest)
 
 #
-# Open up the link to AWS2022-11-21 20:16:45.986116 2022 11
+# Open up the link 
 #
 
 s3 = boto3.resource('s3', config=Config(signature_version=botocore.UNSIGNED,
