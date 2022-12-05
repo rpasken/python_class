@@ -19,16 +19,42 @@ BASE_DIR = './radar/'
 site_names = ['KENX','KBOX']
 
 #
-# Now start work. Get and decode the time for this run
+# Determine if this a clockqueue run or a archive
+# rum
 #
 
-date = str(datetime.utcnow())
+now = input("Use current data or get archive [c/a]? ")
 
-year = date[0:4]
-month = date[5:7]
-day = date[8:10]
-hour = date[11:13]
-print(date,year,month,day,hour)
+#
+# Archive run get the date/time for the get call
+#
+
+if now == "a":
+
+    #
+    # Get the date/time string
+    #
+
+    a = input("Enter the date/time string yyyy-mm-dd-hh ")
+
+    year = a[0:4]        # year
+    month = a[5:7]       # month
+    day = a[8:10]        # day
+    hour = a[11:13]      # hour 
+
+else:
+    
+   #
+   # Clockqueue run get and decode the time for this run
+   #
+
+   date = str(datetime.utcnow())
+   
+   year = date[0:4]
+   month = date[5:7]
+   day = date[8:10]
+   hour = date[11:13]
+
 #
 # Insure that I have some place to store the data
 #
